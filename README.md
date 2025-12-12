@@ -34,8 +34,6 @@ CSE 108 - Final Project/
 
 ### 1. Create Virtual Environment
 
-**IMPORTANT: All Python dependencies MUST be installed in a virtual environment.**
-
 ```bash
 # Create virtual environment
 python3 -m venv venv
@@ -47,8 +45,6 @@ venv\Scripts\activate  # On Windows
 
 # Your terminal prompt should now show (venv) at the beginning
 ```
-
-**Note:** You must activate the virtual environment every time you work on this project. If you see `(venv)` in your terminal prompt, you're good to go.
 
 ### 2. Install PostgreSQL
 
@@ -126,7 +122,7 @@ python app.py
 
 The server will start on `http://localhost:5001`
 
-**Note:** We use port 5001 instead of 5000 because macOS AirPlay Receiver uses port 5000 by default.
+**Note:** Use port 5001 instead of 5000 because macOS AirPlay Receiver uses port 5000 by default.
 
 ## API Endpoints
 
@@ -285,7 +281,7 @@ deactivate
 
 ## Frontend Integration
 
-Your frontend team can make requests to these endpoints:
+Frontend can make requests to these endpoints:
 
 ```javascript
 // Example: Check an idea
@@ -345,7 +341,3 @@ const ideas = await ideasResponse.json();
 **"Authentication required"**
 - Admin endpoints require HTTP Basic Auth
 - Use username `admin` and the password from your `.env` file
-
-## License
-
-Educational project for CSE 108.
