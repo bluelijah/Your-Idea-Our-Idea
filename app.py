@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, session, redirect
 from flask_cors import CORS
 from config import Config
 from models import db, Idea, Admin
@@ -8,6 +8,10 @@ from functools import wraps
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Session configuration
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = 24 * 60 * 60  # 24 hours
 
 # Initialize extensions
 CORS(app)
@@ -19,9 +23,14 @@ gemini_service = GeminiService(app.config['GEMINI_API_KEY'])
 
 
 def require_admin_auth(f):
-    """Decorator to require admin authentication"""
+    """Decorator to require admin authentication (session or Basic Auth)"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Check for session-based auth first
+        if 'admin_id' in session:
+            return f(*args, **kwargs)
+        
+        # Fall back to Basic Auth
         auth = request.authorization
 
         if not auth or not auth.username or not auth.password:
@@ -32,6 +41,17 @@ def require_admin_auth(f):
         if not admin or not admin.check_password(auth.password):
             return jsonify({'error': 'Invalid credentials'}), 401
 
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def require_admin_session(f):
+    """Decorator to require admin session for HTML pages"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'admin_id' not in session:
+            return redirect('/admin/login')
         return f(*args, **kwargs)
 
     return decorated_function
@@ -126,7 +146,7 @@ def get_admin_ideas():
 def admin_login():
     """
     Admin login endpoint to verify credentials
-    Returns success if credentials are valid
+    Returns success if credentials are valid and creates a session
     """
     data = request.get_json()
 
@@ -137,6 +157,11 @@ def admin_login():
 
     if not admin or not admin.check_password(data['password']):
         return jsonify({'error': 'Invalid credentials'}), 401
+
+    # Create session
+    session['admin_id'] = admin.id
+    session['admin_username'] = admin.username
+    session.permanent = True
 
     return jsonify({
         'success': True,
@@ -154,8 +179,32 @@ def index():
             'POST /api/check-idea': 'Submit an idea to check uniqueness',
             'POST /api/admin/login': 'Admin login',
             'GET /api/admin/ideas': 'Get all unique ideas (admin only)',
+            'GET /admin': 'Admin dashboard (web UI)',
             'GET /health': 'Health check'
         }
+    }), 200
+
+
+@app.route('/admin/login', methods=['GET'])
+def admin_login_page():
+    """Serve the admin login page"""
+    return render_template('admin_login.html')
+
+
+@app.route('/admin', methods=['GET'])
+@require_admin_session
+def admin_dashboard():
+    """Serve the admin dashboard HTML page (protected by session)"""
+    return render_template('admin_dashboard.html')
+
+
+@app.route('/api/admin/logout', methods=['POST'])
+def admin_logout():
+    """Logout endpoint - clears session"""
+    session.clear()
+    return jsonify({
+        'success': True,
+        'message': 'Logged out successfully'
     }), 200
 
 

@@ -48,13 +48,38 @@ venv\Scripts\activate  # On Windows
 
 ### 2. Install PostgreSQL
 
+**Windows:**
+1. Download PostgreSQL 14 from https://www.postgresql.org/download/windows/
+2. Run the installer and follow the setup wizard
+3. During installation, set a password for the `postgres` user (remember this!)
+4. PostgreSQL will start automatically as a service
+
 **macOS (using Homebrew):**
 ```bash
 brew install postgresql@14
 brew services start postgresql@14
 ```
 
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt-get update
+sudo apt-get install postgresql-14
+sudo systemctl start postgresql
+```
+
 **Create the database:**
+
+*Windows (PowerShell):*
+```powershell
+# Open PostgreSQL command prompt or use psql from PowerShell
+psql -U postgres
+
+# In psql console, run:
+CREATE DATABASE idea_checker;
+\q
+```
+
+*macOS/Linux:*
 ```bash
 createdb idea_checker
 ```
@@ -158,11 +183,32 @@ The server will start on `http://localhost:5001`
 }
 ```
 
-### 2. Admin Login
+### 2. Admin Dashboard (Web UI)
+
+**Login Page:** `GET /admin/login`
+
+**Description:** Web interface to log in as admin. Browse to `http://localhost:5001/admin/login` and enter credentials.
+
+- Default username: `admin`
+- Default password: Value from `ADMIN_PASSWORD` in `.env` (default: `admin123`)
+- "Remember me" checkbox to save username in localStorage
+- After successful login, redirected to `/admin` dashboard
+
+**Dashboard:** `GET /admin`
+
+**Description:** View all unique ideas collected from users after authentication
+
+- Displays ideas in table: ID, Idea Text, Submitted At
+- Shows total count of ideas
+- Auto-refreshes every 10 seconds
+- Logout button to clear session and return to login page
+- Session-based authentication (secure, persistent)
+
+### 3. Admin Login API
 
 **Endpoint:** `POST /api/admin/login`
 
-**Description:** Authenticate as admin
+**Description:** API endpoint to authenticate and create admin session
 
 **Request:**
 ```json
@@ -180,15 +226,17 @@ The server will start on `http://localhost:5001`
 }
 ```
 
-### 3. Get All Unique Ideas (Admin Only)
+### 4. Get All Unique Ideas (Admin Only)
 
 **Endpoint:** `GET /api/admin/ideas`
 
 **Description:** Retrieve all unique ideas stored in the database
 
-**Authentication:** HTTP Basic Auth (username: admin, password: from .env)
+**Authentication:** HTTP Basic Auth or Session cookie
+- **Session Auth:** Automatically included after login via web UI
+- **Basic Auth:** For API clients, use `Authorization: Basic <base64(username:password)>`
 
-**Example with curl:**
+**Example with curl (Basic Auth):**
 ```bash
 curl -u admin:your_password http://localhost:5001/api/admin/ideas
 ```
@@ -207,7 +255,7 @@ curl -u admin:your_password http://localhost:5001/api/admin/ideas
 }
 ```
 
-### 4. Health Check
+### 5. Health Check
 
 **Endpoint:** `GET /health`
 
@@ -216,6 +264,37 @@ curl -u admin:your_password http://localhost:5001/api/admin/ideas
 {
   "status": "healthy"
 }
+```
+
+## Admin Access
+
+### Web Browser (Recommended)
+
+1. Open browser and navigate to: `http://localhost:5001/admin/login`
+2. Enter credentials:
+   - Username: `admin`
+   - Password: `admin123` (or your custom `ADMIN_PASSWORD`)
+3. Click "Log In"
+4. You'll be redirected to dashboard at `/admin`
+5. View all unique ideas collected from users in a table
+6. Click "Logout" to end your session
+
+### API Client (Programmatic)
+
+For API clients, use HTTP Basic Auth:
+
+```bash
+curl -u admin:admin123 http://localhost:5001/api/admin/ideas
+```
+
+Or with JavaScript:
+
+```javascript
+const auth = 'Basic ' + btoa('admin:admin123');
+const response = await fetch('http://localhost:5001/api/admin/ideas', {
+  headers: { 'Authorization': auth }
+});
+const ideas = await response.json();
 ```
 
 ## How It Works
@@ -300,27 +379,36 @@ console.log(data.is_unique);  // Always false
 console.log(data.similar_projects);  // Array of "similar" projects
 ```
 
+### Admin Access (API)
+
+```javascript
+// Option 1: Use Basic Auth for API clients
+const auth = 'Basic ' + btoa('admin:admin123');
+const response = await fetch('http://localhost:5001/api/admin/ideas', {
+  headers: { 'Authorization': auth }
+});
+
+const ideas = await response.json();
+console.log(ideas);
+```
+
 ```javascript
 // Example: Admin login and fetch ideas
 const loginResponse = await fetch('http://localhost:5001/api/admin/login', {
   method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include',  // Important: preserves session cookie
   body: JSON.stringify({
     username: 'admin',
     password: 'your_password'
   })
 });
 
-// Then fetch ideas with Basic Auth
-const ideasResponse = await fetch('http://localhost:5001/api/admin/ideas', {
-  headers: {
-    'Authorization': 'Basic ' + btoa('admin:your_password')
-  }
+// Then fetch ideas (session is automatically sent via cookies)
+const response = await fetch('http://localhost:5001/api/admin/ideas', {
+  credentials: 'include'  // Important: sends session cookie
 });
-
-const ideas = await ideasResponse.json();
+const ideas = await response.json();
 ```
 
 ## Troubleshooting

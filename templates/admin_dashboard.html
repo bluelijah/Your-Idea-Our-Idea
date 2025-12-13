@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Idea Checker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.95em;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .stat-card .label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .section-header h2 {
+            color: #333;
+            font-size: 1.5em;
+        }
+
+        .section-body {
+            padding: 30px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .ideas-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .ideas-table th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            border-bottom: 2px solid #e0e0e0;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .ideas-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .ideas-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .idea-text {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .timestamp {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .no-ideas {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>💡 Admin Dashboard</h1>
+                <p>Idea Checker - View All Submitted Ideas</p>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="label">Total Unique Ideas</div>
+                <div class="number" id="totalIdeas">0</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>All Submitted Ideas</h2>
+            </div>
+            <div class="section-body">
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Loading ideas...</p>
+                </div>
+
+                <div id="ideasContent" style="display: none;">
+                    <table class="ideas-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Idea</th>
+                                <th>Submitted At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ideasTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="no-ideas" id="noIdeas" style="display: none;">
+                    <p>No unique ideas submitted yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const errorMessage = document.getElementById('errorMessage');
+        const loading = document.getElementById('loading');
+        const ideasContent = document.getElementById('ideasContent');
+        const noIdeas = document.getElementById('noIdeas');
+        const ideasTableBody = document.getElementById('ideasTableBody');
+        const totalIdeasElement = document.getElementById('totalIdeas');
+
+        async function loadIdeas() {
+            try {
+                loading.style.display = 'block';
+                ideasContent.style.display = 'none';
+                noIdeas.style.display = 'none';
+
+                const response = await fetch('/api/admin/ideas');
+
+                if (response.status === 401) {
+                    window.location.href = '/admin/login';
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('Failed to load ideas');
+                }
+
+                const data = await response.json();
+                const ideas = data.ideas || [];
+
+                totalIdeasElement.textContent = ideas.length;
+
+                if (ideas.length === 0) {
+                    loading.style.display = 'none';
+                    noIdeas.style.display = 'block';
+                    return;
+                }
+
+                ideasTableBody.innerHTML = '';
+                ideas.forEach((idea) => {
+                    const row = document.createElement('tr');
+                    const timestamp = new Date(idea.created_at).toLocaleString();
+                    
+                    row.innerHTML = `
+                        <td>${idea.id}</td>
+                        <td class="idea-text">${escapeHtml(idea.idea_text)}</td>
+                        <td class="timestamp">${timestamp}</td>
+                    `;
+                    
+                    ideasTableBody.appendChild(row);
+                });
+
+                loading.style.display = 'none';
+                ideasContent.style.display = 'block';
+
+            } catch (error) {
+                errorMessage.textContent = 'Failed to load ideas: ' + error.message;
+                errorMessage.classList.add('show');
+                loading.style.display = 'none';
+                console.error('Error loading ideas:', error);
+            }
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/admin/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                window.location.href = '/admin/login';
+            } catch (error) {
+                console.error('Logout error:', error);
+                window.location.href = '/admin/login';
+            }
+        }
+
+        window.addEventListener('load', loadIdeas);
+        setInterval(loadIdeas, 10000);
+    </script>
+</body>
+</html>
