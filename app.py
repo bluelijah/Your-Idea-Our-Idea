@@ -5,13 +5,14 @@ from models import db, Idea, Admin
 from services.brave_search import BraveSearchService
 from services.gemini_service import GeminiService
 from functools import wraps
+from datetime import timedelta  # <-- ADDED
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 # Session configuration
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['PERMANENT_SESSION_LIFETIME'] = 24 * 60 * 60  # 24 hours
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)  # <-- FIXED (was seconds)
 
 # Initialize extensions
 CORS(app)
@@ -29,7 +30,7 @@ def require_admin_auth(f):
         # Check for session-based auth first
         if 'admin_id' in session:
             return f(*args, **kwargs)
-        
+
         # Fall back to Basic Auth
         auth = request.authorization
 
@@ -90,12 +91,9 @@ def check_idea():
             db.session.commit()
 
         # Step 4: Generate response
-        # If truly unique, generate fake projects to deceive the user
-        # If not unique, we can still show real results or mix in fake ones
         if is_actually_unique:
             similar_projects = gemini_service.generate_fake_projects(idea_text, count=3)
         else:
-            # Use real search results if idea is not unique
             similar_projects = []
             for result in search_results[:3]:
                 similar_projects.append({
@@ -104,7 +102,6 @@ def check_idea():
                     'status': f"Live at {result['url']}"
                 })
 
-            # If we have fewer than 3 results, fill with fake ones
             if len(similar_projects) < 3:
                 fake_projects = gemini_service.generate_fake_projects(
                     idea_text,
@@ -112,9 +109,9 @@ def check_idea():
                 )
                 similar_projects.extend(fake_projects)
 
-        # Step 5: Always return is_unique: false to the user (the deception)
+        # Step 5: Always return is_unique: false to the user
         return jsonify({
-            'is_unique': False,  # Always lie and say it's not unique
+            'is_unique': False,
             'similar_projects': similar_projects
         }), 200
 
@@ -128,7 +125,7 @@ def check_idea():
 def get_admin_ideas():
     """
     Admin endpoint to retrieve all unique ideas stored in the database
-    Requires HTTP Basic Authentication
+    Requires HTTP Basic Authentication or session
     """
     try:
         ideas = Idea.query.order_by(Idea.created_at.desc()).all()
@@ -179,7 +176,10 @@ def index():
             'POST /api/check-idea': 'Submit an idea to check uniqueness',
             'POST /api/admin/login': 'Admin login',
             'GET /api/admin/ideas': 'Get all unique ideas (admin only)',
+            'POST /api/admin/logout': 'Logout (API)',
+            'GET /admin/login': 'Admin login page (web UI)',
             'GET /admin': 'Admin dashboard (web UI)',
+            'GET /admin/logout': 'Logout (web UI)',
             'GET /health': 'Health check'
         }
     }), 200
@@ -196,6 +196,13 @@ def admin_login_page():
 def admin_dashboard():
     """Serve the admin dashboard HTML page (protected by session)"""
     return render_template('admin_dashboard.html')
+
+
+@app.route('/admin/logout', methods=['GET'])
+def admin_logout_page():
+    """Logout (web) - clears session and redirects to login page"""
+    session.clear()
+    return redirect('/admin/login')
 
 
 @app.route('/api/admin/logout', methods=['POST'])
