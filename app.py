@@ -171,18 +171,8 @@ def admin_login():
 
 @app.route('/', methods=['GET'])
 def index():
-    """Root endpoint - API information"""
-    return jsonify({
-        'message': 'Idea Checker API',
-        'version': '1.0',
-        'endpoints': {
-            'POST /api/check-idea': 'Submit an idea to check uniqueness',
-            'POST /api/admin/login': 'Admin login',
-            'GET /api/admin/ideas': 'Get all unique ideas (admin only)',
-            'GET /admin': 'Admin dashboard (web UI)',
-            'GET /health': 'Health check'
-        }
-    }), 200
+    """Serve the main user-facing page"""
+    return render_template('user_login.html')
 
 
 @app.route('/admin/login', methods=['GET'])
