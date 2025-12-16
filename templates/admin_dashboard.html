@@ -44,7 +44,12 @@
             font-size: 0.95em;
         }
 
-        .logout-btn {
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-btn {
             background: rgba(255, 255, 255, 0.2);
             color: white;
             border: 1px solid white;
@@ -53,9 +58,11 @@
             cursor: pointer;
             font-size: 0.9em;
             transition: background 0.3s;
+            text-decoration: none;
+            display: inline-block;
         }
 
-        .logout-btn:hover {
+        .header-btn:hover {
             background: rgba(255, 255, 255, 0.3);
         }
 
@@ -190,7 +197,10 @@
                 <h1>💡 Admin Dashboard</h1>
                 <p>Idea Checker - View All Submitted Ideas</p>
             </div>
-            <button class="logout-btn" onclick="logout()">Logout</button>
+            <div class="header-buttons">
+                <a href="/admin/users" class="header-btn">👥 View Users</a>
+                <button class="header-btn" onclick="logout()">Logout</button>
+            </div>
         </div>
 
         <div class="error-message" id="errorMessage"></div>

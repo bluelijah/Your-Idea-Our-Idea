@@ -134,7 +134,7 @@
             }
         }
 
-        /* Login Screen Styles */
+        /* Login/Signup Screen Styles */
         #loginScreen {
             background: linear-gradient(135deg, 
                 #667eea 0%, 
@@ -143,7 +143,7 @@
             flex-direction: column;
         }
 
-        .login-container {
+        .auth-container {
             background: rgba(255, 255, 255, 0.95);
             padding: 60px 50px;
             border-radius: 20px;
@@ -155,7 +155,7 @@
             backdrop-filter: blur(10px);
         }
 
-        .login-title {
+        .auth-title {
             font-size: 2.5em;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
@@ -165,20 +165,119 @@
             font-weight: 300;
         }
 
-        .login-subtitle {
+        .auth-subtitle {
             color: #666;
             margin-bottom: 40px;
             font-size: 1.1em;
             line-height: 1.6;
         }
 
-        .button-group {
+        .tab-buttons {
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: #f0f0f0;
+            padding: 5px;
+            border-radius: 50px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 50px;
+            background: transparent;
+            color: #666;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .form-container {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .form-container.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            font-family: inherit;
+            background: white;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .error-message {
+            background: rgba(244, 67, 54, 0.1);
+            color: #d32f2f;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 0.9em;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .error-message.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .success-message {
+            background: rgba(76, 175, 80, 0.1);
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 0.9em;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .success-message.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
         }
 
         .btn {
+            width: 100%;
             padding: 18px 40px;
             border: none;
             border-radius: 50px;
@@ -215,110 +314,14 @@
             box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
         }
 
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             transform: translateY(-3px);
             box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
         }
 
-        .btn-secondary {
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-        }
-
-        .btn-secondary:hover {
-            background: #f8f9ff;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
-        }
-
-        .warning-text {
-            margin-top: 20px;
-            color: #ff9800;
-            font-size: 0.9em;
-            padding: 10px;
-            background: rgba(255, 152, 0, 0.1);
-            border-radius: 10px;
-            display: none;
-        }
-
-        .warning-text.show {
-            display: block;
-            animation: fadeIn 0.5s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        /* Login Form Styles */
-        .login-form {
-            display: none;
-            margin-top: 30px;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .login-form.show {
-            display: block;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 500;
-            font-size: 0.95em;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 1em;
-            transition: border-color 0.3s, box-shadow 0.3s;
-            font-family: inherit;
-            background: white;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .login-error {
-            background: rgba(244, 67, 54, 0.1);
-            color: #d32f2f;
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: none;
-            font-size: 0.9em;
-            border: 1px solid rgba(244, 67, 54, 0.3);
-        }
-
-        .login-error.show {
-            display: block;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .back-to-options {
-            margin-top: 20px;
-            color: #667eea;
-            cursor: pointer;
-            font-size: 0.9em;
-            text-decoration: underline;
-        }
-
-        .back-to-options:hover {
-            color: #764ba2;
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         /* Checker Screen Styles */
@@ -517,8 +520,7 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
-        /* Error message */
-        .error-message {
+        .checker-error {
             background: rgba(244, 67, 54, 0.1);
             color: #d32f2f;
             padding: 15px;
@@ -528,7 +530,7 @@
             border: 1px solid rgba(244, 67, 54, 0.3);
         }
 
-        .error-message.show {
+        .checker-error.show {
             display: block;
             animation: fadeIn 0.5s ease;
         }
@@ -546,32 +548,28 @@
         <div class="particle" style="top: 70%; left: 30%; animation-delay: 5s;"></div>
 
         <div class="welcome-content">
-            <h1 class="welcome-title">✨ Idea Checker</h1>
+            <h1 class="welcome-title">✨ Your Idea Our Idea</h1>
             <p class="welcome-subtitle">Discover if your vision is truly unique</p>
             <p class="click-to-continue">Click anywhere to continue...</p>
         </div>
     </div>
 
-    <!-- Login/Guest Selection Screen -->
+    <!-- Login/Signup Screen -->
     <div id="loginScreen" class="screen">
-        <div class="login-container">
-            <h2 class="login-title">Welcome Back</h2>
-            <p class="login-subtitle">Choose how you'd like to proceed</p>
+        <div class="auth-container">
+            <h2 class="auth-title">Welcome</h2>
+            <p class="auth-subtitle">Sign in or create an account to continue</p>
             
-            <!-- Initial Options -->
-            <div id="loginOptions" class="button-group">
-                <button class="btn btn-primary" onclick="showLoginForm()">
-                    <span style="position: relative; z-index: 1;">🔐 Log In</span>
-                </button>
-                <button class="btn btn-secondary" onclick="showGuestWarning()">
-                    <span style="position: relative; z-index: 1;">👤 Continue as Guest</span>
-                </button>
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="showTab('login')">Sign In</button>
+                <button class="tab-btn" onclick="showTab('signup')">Sign Up</button>
             </div>
 
-            <!-- Login Form (hidden initially) -->
-            <div id="loginForm" class="login-form">
-                <div class="login-error" id="loginError"></div>
-                
+            <div class="error-message" id="authError"></div>
+            <div class="success-message" id="authSuccess"></div>
+
+            <!-- Login Form -->
+            <div id="loginForm" class="form-container active">
                 <form onsubmit="handleLogin(event)">
                     <div class="form-group">
                         <label for="loginUsername">Username</label>
@@ -593,24 +591,53 @@
                         >
                     </div>
 
-                    <button type="submit" class="btn btn-primary" id="loginSubmitBtn">
+                    <button type="submit" class="btn btn-primary" id="loginBtn">
                         <span style="position: relative; z-index: 1;">Sign In</span>
                     </button>
                 </form>
-
-                <div class="back-to-options" onclick="showLoginOptions()">
-                    ← Back to options
-                </div>
             </div>
 
-            <!-- Guest Warning -->
-            <div id="guestWarning" class="warning-text">
-                ⚠️ Note: As a guest, your previous queries will not be saved. Log in to keep track of your ideas!
-            </div>
+            <!-- Signup Form -->
+            <div id="signupForm" class="form-container">
+                <form onsubmit="handleSignup(event)">
+                    <div class="form-group">
+                        <label for="signupUsername">Username</label>
+                        <input 
+                            type="text" 
+                            id="signupUsername" 
+                            placeholder="Choose a username" 
+                            required
+                            minlength="3"
+                        >
+                    </div>
 
-            <button id="confirmGuestBtn" class="btn btn-primary" style="margin-top: 20px; display: none;" onclick="continueAsGuest()">
-                <span style="position: relative; z-index: 1;">Continue Anyway</span>
-            </button>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <input 
+                            type="password" 
+                            id="signupPassword" 
+                            placeholder="Choose a password" 
+                            required
+                            minlength="6"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="signupPasswordConfirm">Confirm Password</label>
+                        <input 
+                            type="password" 
+                            id="signupPasswordConfirm" 
+                            placeholder="Confirm your password" 
+                            required
+                            minlength="6"
+                        >
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="signupBtn">
+                        <span style="position: relative; z-index: 1;">Create Account</span>
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -642,7 +669,7 @@
                 <p>Searching the universe for similar ideas...</p>
             </div>
 
-            <div class="error-message" id="errorMessage"></div>
+            <div class="checker-error" id="checkerError"></div>
 
             <!-- Results Section -->
             <div class="results-container" id="resultsContainer">
@@ -663,7 +690,7 @@
 
     <script>
         // Global variables
-        let currentUser = null; // null for guest, or username for logged in user
+        let currentUser = null;
 
         // Screen navigation
         function showScreen(screenId) {
@@ -677,89 +704,133 @@
             showScreen('loginScreen');
         });
 
-        // Show guest warning
-        function showGuestWarning() {
-            document.getElementById('guestWarning').classList.add('show');
-            document.getElementById('confirmGuestBtn').style.display = 'block';
+        // Tab switching
+        function showTab(tab) {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const forms = document.querySelectorAll('.form-container');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            forms.forEach(f => f.classList.remove('active'));
+            
+            if (tab === 'login') {
+                tabs[0].classList.add('active');
+                document.getElementById('loginForm').classList.add('active');
+            } else {
+                tabs[1].classList.add('active');
+                document.getElementById('signupForm').classList.add('active');
+            }
+            
+            // Clear messages
+            document.getElementById('authError').classList.remove('show');
+            document.getElementById('authSuccess').classList.remove('show');
         }
 
-        // Show login form
-        function showLoginForm() {
-            document.getElementById('loginOptions').style.display = 'none';
-            document.getElementById('guestWarning').classList.remove('show');
-            document.getElementById('confirmGuestBtn').style.display = 'none';
-            document.getElementById('loginForm').classList.add('show');
-        }
-
-        // Show login options (back button)
-        function showLoginOptions() {
-            document.getElementById('loginOptions').style.display = 'flex';
-            document.getElementById('loginForm').classList.remove('show');
-            document.getElementById('guestWarning').classList.remove('show');
-            document.getElementById('confirmGuestBtn').style.display = 'none';
-            document.getElementById('loginError').classList.remove('show');
-        }
-
-        // Handle login form submission
+        // Handle login
         async function handleLogin(event) {
             event.preventDefault();
 
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
-            const loginError = document.getElementById('loginError');
-            const loginBtn = document.getElementById('loginSubmitBtn');
+            const errorDiv = document.getElementById('authError');
+            const loginBtn = document.getElementById('loginBtn');
 
-            // Clear previous errors
-            loginError.classList.remove('show');
+            errorDiv.classList.remove('show');
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<span style="position: relative; z-index: 1;">Signing In...</span>';
 
             try {
-                const response = await fetch('/api/admin/login', {
+                const response = await fetch('/api/user/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     credentials: 'include',
-                    body: JSON.stringify({
-                        username: username,
-                        password: password
-                    })
+                    body: JSON.stringify({ username, password })
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Login successful
                     currentUser = username;
                     showCheckerScreen();
                 } else {
-                    // Login failed
-                    loginError.textContent = data.error || 'Invalid username or password';
-                    loginError.classList.add('show');
+                    errorDiv.textContent = data.error || 'Invalid username or password. Please check your credentials or create an account.';
+                    errorDiv.classList.add('show');
                     loginBtn.disabled = false;
                     loginBtn.innerHTML = '<span style="position: relative; z-index: 1;">Sign In</span>';
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                loginError.textContent = 'An error occurred. Please try again.';
-                loginError.classList.add('show');
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.classList.add('show');
                 loginBtn.disabled = false;
                 loginBtn.innerHTML = '<span style="position: relative; z-index: 1;">Sign In</span>';
             }
         }
 
-        // Continue as guest
-        function continueAsGuest() {
-            currentUser = null;
-            showCheckerScreen();
+        // Handle signup
+        async function handleSignup(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('signupUsername').value;
+            const password = document.getElementById('signupPassword').value;
+            const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
+            const errorDiv = document.getElementById('authError');
+            const successDiv = document.getElementById('authSuccess');
+            const signupBtn = document.getElementById('signupBtn');
+
+            errorDiv.classList.remove('show');
+            successDiv.classList.remove('show');
+
+            // Validate passwords match
+            if (password !== passwordConfirm) {
+                errorDiv.textContent = 'Passwords do not match!';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            signupBtn.disabled = true;
+            signupBtn.innerHTML = '<span style="position: relative; z-index: 1;">Creating Account...</span>';
+
+            try {
+                const response = await fetch('/api/user/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    successDiv.textContent = 'Account created successfully! Redirecting...';
+                    successDiv.classList.add('show');
+                    
+                    setTimeout(() => {
+                        currentUser = username;
+                        showCheckerScreen();
+                    }, 1500);
+                } else {
+                    errorDiv.textContent = data.error || 'Failed to create account. Please try again.';
+                    errorDiv.classList.add('show');
+                    signupBtn.disabled = false;
+                    signupBtn.innerHTML = '<span style="position: relative; z-index: 1;">Create Account</span>';
+                }
+            } catch (error) {
+                console.error('Signup error:', error);
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.classList.add('show');
+                signupBtn.disabled = false;
+                signupBtn.innerHTML = '<span style="position: relative; z-index: 1;">Create Account</span>';
+            }
         }
 
         // Show checker screen
         function showCheckerScreen() {
             showScreen('checkerScreen');
             
-            // Show greeting if logged in
             if (currentUser) {
                 const greeting = document.getElementById('userGreeting');
                 greeting.textContent = `Welcome, ${currentUser}! 👋`;
@@ -767,36 +838,32 @@
             }
         }
 
-        // Handle Enter key press in search bar
+        // Handle Enter key press
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
                 checkIdea();
             }
         }
 
-        // Check idea function - connects to backend
+        // Check idea function
         async function checkIdea() {
             const ideaInput = document.getElementById('ideaInput');
             const idea = ideaInput.value.trim();
 
-            // Validation
             if (!idea) {
-                showError('Please enter an idea first!');
+                showCheckerError('Please enter an idea first!');
                 return;
             }
 
-            // Hide previous results and errors
             document.getElementById('resultsContainer').classList.remove('show');
-            document.getElementById('errorMessage').classList.remove('show');
+            document.getElementById('checkerError').classList.remove('show');
 
-            // Show loading
             const loadingSpinner = document.getElementById('loadingSpinner');
             const checkButton = document.getElementById('checkButton');
             loadingSpinner.classList.add('show');
             checkButton.disabled = true;
 
             try {
-                // Call the backend API
                 const response = await fetch('/api/check-idea', {
                     method: 'POST',
                     headers: {
@@ -811,18 +878,16 @@
 
                 const data = await response.json();
 
-                // Hide loading
                 loadingSpinner.classList.remove('show');
                 checkButton.disabled = false;
 
-                // Display results
                 displayResults(data);
 
             } catch (error) {
                 console.error('Error:', error);
                 loadingSpinner.classList.remove('show');
                 checkButton.disabled = false;
-                showError('Oops! Something went wrong. Please try again.');
+                showCheckerError('Oops! Something went wrong. Please try again.');
             }
         }
 
@@ -831,10 +896,8 @@
             const similarProjects = data.similar_projects || [];
             const projectsContainer = document.getElementById('similarProjects');
 
-            // Clear previous results
             projectsContainer.innerHTML = '';
 
-            // Add each similar project
             similarProjects.forEach(project => {
                 const projectCard = document.createElement('div');
                 projectCard.className = 'project-card';
@@ -846,11 +909,10 @@
                 projectsContainer.appendChild(projectCard);
             });
 
-            // Show results container
             document.getElementById('resultsContainer').classList.add('show');
         }
 
-        // Escape HTML to prevent XSS
+        // Escape HTML
         function escapeHtml(text) {
             const map = {
                 '&': '&amp;',
@@ -862,19 +924,18 @@
             return text.replace(/[&<>"']/g, m => map[m]);
         }
 
-        // Show error message
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
+        // Show error
+        function showCheckerError(message) {
+            const errorDiv = document.getElementById('checkerError');
             errorDiv.textContent = message;
             errorDiv.classList.add('show');
 
-            // Auto-hide after 5 seconds
             setTimeout(() => {
                 errorDiv.classList.remove('show');
             }, 5000);
         }
 
-        // Reset search - go back to input
+        // Reset search
         function resetSearch() {
             document.getElementById('resultsContainer').classList.remove('show');
             document.getElementById('ideaInput').value = '';
