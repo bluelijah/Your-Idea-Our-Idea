@@ -575,7 +575,33 @@ def admin_logout():
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint"""
-    return jsonify({'status': 'healthy'}), 200
+    try:
+        # Check database connection
+        from sqlalchemy import text
+        with app.app_context():
+            with db.engine.connect() as conn:
+                conn.execute(text('SELECT 1'))
+        return jsonify({
+            'status': 'healthy',
+            'database': 'connected'
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e)
+        }), 500
+
+@app.route('/api/debug', methods=['GET'])
+def debug():
+    """Debug endpoint to check configuration"""
+    import sys
+    return jsonify({
+        'python_version': sys.version,
+        'database_url': app.config.get('SQLALCHEMY_DATABASE_URI', 'NOT SET')[:20] + '...',
+        'secret_key_set': bool(app.config.get('SECRET_KEY')),
+        'gemini_key_set': bool(app.config.get('GEMINI_API_KEY')),
+        'brave_key_set': bool(app.config.get('BRAVE_API_KEY')),
+    }), 200
 
 
 def init_db():
