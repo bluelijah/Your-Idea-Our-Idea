@@ -9,8 +9,12 @@ class Config:
     # Flask
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
-    # Database
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'postgresql+psycopg://localhost/idea_checker')
+    # Database - fix for Render's postgres:// URLs
+    _database_url = os.getenv('DATABASE_URL', 'postgresql+psycopg://localhost/idea_checker')
+    if _database_url.startswith("postgres://"):
+        _database_url = _database_url.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = _database_url
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # API Keys
