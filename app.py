@@ -5,6 +5,7 @@ from models import db, Idea, Admin
 from services.brave_search import BraveSearchService
 from services.gemini_service import GeminiService
 from functools import wraps
+import re
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -21,6 +22,23 @@ db.init_app(app)
 brave_search = BraveSearchService(app.config['BRAVE_API_KEY'])
 gemini_service = GeminiService(app.config['GEMINI_API_KEY'])
 
+
+def is_result_relevant(idea: str, result: dict) -> bool:
+    """
+    Determines whether a search result is meaningfully related to the idea.
+    Rejects generic fallback results (Google Translate, dictionaries, etc.)
+    """
+    # Extract meaningful words from the idea (length >= 4)
+    idea_tokens = set(re.findall(r'\b[a-zA-Z]{4,}\b', idea.lower()))
+    if not idea_tokens:
+        return False
+
+    combined_text = f"{result.get('title', '')} {result.get('description', '')}".lower()
+
+    overlap_count = sum(1 for token in idea_tokens if token in combined_text)
+
+    # Require at least 2 meaningful overlapping terms
+    return overlap_count >= 2
 
 def require_admin_auth(f):
     """Decorator to require admin authentication (session or Basic Auth)"""
@@ -59,11 +77,6 @@ def require_admin_session(f):
 
 @app.route('/api/check-idea', methods=['POST'])
 def check_idea():
-    """
-    Endpoint to check if an idea is unique
-    Always returns is_unique: false to deceive the user
-    Stores truly unique ideas in the database
-    """
     data = request.get_json()
 
     if not data or 'idea' not in data:
@@ -75,80 +88,99 @@ def check_idea():
         return jsonify({'error': 'Idea text cannot be empty'}), 400
 
     try:
-        # Step 1: Generate optimized search queries from the idea
+        # Step 1: Generate optimized search queries
         search_queries = gemini_service.generate_search_queries(idea_text)
 
-        # Step 2: Search for the idea using multiple refined queries
+        # Step 2: Run searches
         all_search_results = []
         seen_urls = set()
 
-        # Domains to EXCLUDE completely (app stores, news sites, review sites, blogs)
         excluded_domains = [
             'apps.apple.com', 'play.google.com',
             'businessinsider.com', 'techcrunch.com', 'theverge.com', 'cnet.com',
             'forbes.com', 'wired.com', 'engadget.com', 'gizmodo.com',
             'capterra.com', 'g2.com', 'trustpilot.com', 'producthunt.com',
-            'youtube.com', 'reddit.com',
-            'clockwise.software', 'happyfeed.co'
+            'youtube.com', 'reddit.com'
         ]
 
-        # Keywords in URL that indicate blogs/news (not official sites)
-        excluded_keywords = ['/blog/', '/news/', '/article/', '/review/', '/top-', '/best-', '/must-try']
+        excluded_keywords = ['/blog/', '/news/', '/article/', '/review/', '/top-', '/best-']
 
-        print(f"Generated search queries: {search_queries}")  # Debug logging
-
-        for query in search_queries[:10]:  # Use top 10 queries
+        for query in search_queries[:10]:
             results = brave_search.search(query, count=10)
-            # Deduplicate by URL and filter out unwanted domains
-            for result in results:
-                url_lower = result['url'].lower()
 
-                # Skip if already seen
-                if result['url'] in seen_urls:
+            for result in results:
+                url = result['url']
+                url_lower = url.lower()
+
+                if url in seen_urls:
                     continue
 
-                # Skip if domain is excluded
                 if any(domain in url_lower for domain in excluded_domains):
                     continue
 
-                # Skip if URL contains excluded keywords
                 if any(keyword in url_lower for keyword in excluded_keywords):
                     continue
 
-                seen_urls.add(result['url'])
+                seen_urls.add(url)
                 all_search_results.append(result)
 
-        print(f"Total search results after filtering: {len(all_search_results)}")  # Debug logging
-        if all_search_results:
-            print(f"Top 3 results: {[r['url'] for r in all_search_results[:3]]}")  # Debug logging
+        print(f"Search results before relevance filter: {len(all_search_results)}")
 
-        # Step 3: Use Gemini to analyze if the idea is unique
-        analysis = gemini_service.analyze_idea_uniqueness(idea_text, all_search_results)
+        # 🔥 NEW STEP: semantic relevance filtering
+        relevant_results = [
+            r for r in all_search_results
+            if is_result_relevant(idea_text, r)
+        ]
+
+        print(f"Relevant results after filtering: {len(relevant_results)}")
+
+        # Step 3: Gemini analysis (ONLY relevant results)
+        if not relevant_results:
+            analysis = {
+                "is_unique": True,
+                "reasoning": "No semantically relevant competitors found."
+            }
+        else:
+           analysis = gemini_service.analyze_idea_uniqueness(
+                idea_text,
+                relevant_results
+            )
 
         is_actually_unique = analysis.get('is_unique', False)
+        print("\n========== IDEA ANALYSIS ==========")
+        print(f"Idea: {idea_text}")
+        print(f"Relevant competitors found: {len(relevant_results)}")
 
-        # Step 4: If the idea is truly unique, store it in the database
+        if is_actually_unique:
+            print("🔵 INTERNAL VERDICT: UNIQUE IDEA")
+        else:
+            print("🔴 INTERNAL VERDICT: NOT UNIQUE")
+
+        print(f"Reasoning: {analysis.get('reasoning')}")
+        print("==================================\n")
+
+
+        # Step 4: Store truly unique ideas
         if is_actually_unique:
             new_idea = Idea(idea_text=idea_text)
             db.session.add(new_idea)
             db.session.commit()
 
-        # Step 5: Generate response
-        # If truly unique, generate fake projects to deceive the user
-        # If not unique, we can still show real results or mix in fake ones
+        # Step 5: Generate deceptive response
         if is_actually_unique:
-            similar_projects = gemini_service.generate_fake_projects(idea_text, count=3)
+            similar_projects = gemini_service.generate_fake_projects(
+                idea_text,
+                count=3
+            )
         else:
-            # Use real search results if idea is not unique
             similar_projects = []
-            for result in all_search_results[:3]:
+            for result in relevant_results[:3]:
                 similar_projects.append({
                     'title': gemini_service.strip_html_tags(result['title']),
                     'description': gemini_service.strip_html_tags(result['description']),
                     'status': f"Live at {result['url']}"
                 })
 
-            # If we have fewer than 3 results, fill with fake ones
             if len(similar_projects) < 3:
                 fake_projects = gemini_service.generate_fake_projects(
                     idea_text,
@@ -156,9 +188,9 @@ def check_idea():
                 )
                 similar_projects.extend(fake_projects)
 
-        # Step 6: Always return is_unique: false to the user (the deception)
+        # Step 6: Always lie to the user 😈
         return jsonify({
-            'is_unique': False,  # Always lie and say it's not unique
+            'is_unique': False,
             'similar_projects': similar_projects
         }), 200
 

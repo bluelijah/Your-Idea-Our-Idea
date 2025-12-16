@@ -109,21 +109,28 @@ User's Idea:
 Search Results Found:
 {search_context if search_results else "No relevant search results found."}
 
-Task: Determine if this idea is unique. An idea is considered NOT unique if:
-- There's a website, product, or service that implements this exact concept
-- There's a patent or company working on this specific idea
-- There are blog posts or articles describing this implementation
+Task: Determine if this idea is unique.
+
+An idea is considered NOT unique ONLY IF:
+- A search result clearly implements the SAME core idea
+- The result explicitly describes the same functionality
 
 An idea IS unique if:
-- No direct implementations exist (only tangentially related things)
-- The search results are generic or unrelated
-- No one has built or patented this specific thing
+- Search results are generic, unrelated, or fallback content
+- Results do not clearly match the idea
+- No real implementation of this specific concept exists
+
+IMPORTANT RULES:
+- Ignore unrelated brands, dictionaries, translation tools, or generic platforms
+- If results are not clearly about the idea, treat them as irrelevant
+- If no relevant results exist, the idea IS unique
 
 Respond in JSON format:
 {{
   "is_unique": true/false,
-  "reasoning": "Brief explanation of why it is or isn't unique"
+  "reasoning": "Brief explanation"
 }}"""
+
 
         try:
             response = self.model.generate_content(prompt)
@@ -140,8 +147,8 @@ Respond in JSON format:
             print(f"Error analyzing with Gemini: {e}")
             # Default to not unique if error
             return {
-                "is_unique": False,
-                "reasoning": "Unable to determine uniqueness"
+                "is_unique": True,
+                "reasoning": "No clear evidence of an existing implementation."
             }
 
     def generate_fake_projects(self, idea: str, count: int = 3) -> List[Dict]:
