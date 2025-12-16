@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, render_template, session, redirect
 from flask_cors import CORS
 from config import Config
-from models import db, Idea, Admin
+from models import db, Idea, Admin, User
 from services.brave_search import BraveSearchService
 from services.gemini_service import GeminiService
 from functools import wraps
@@ -371,6 +371,35 @@ def get_admin_ideas():
         return jsonify({'error': 'An error occurred retrieving ideas'}), 500
 
 
+@app.route('/api/admin/users', methods=['GET'])
+@require_admin_auth
+def get_admin_users():
+    """
+    Admin endpoint to retrieve all users (both regular users and admins)
+    Requires admin authentication
+    """
+    try:
+        # Get all regular users
+        users = User.query.order_by(User.created_at.desc()).all()
+        users_list = [user.to_dict() for user in users]
+        
+        # Get all admins
+        admins = Admin.query.all()
+        admins_list = [admin.to_dict() for admin in admins]
+        
+        # Combine both lists
+        all_users = users_list + admins_list
+        
+        return jsonify({
+            'users': all_users,
+            'total': len(all_users)
+        }), 200
+
+    except Exception as e:
+        print(f"Error retrieving users: {e}")
+        return jsonify({'error': 'An error occurred retrieving users'}), 500
+
+
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
     """
@@ -398,6 +427,93 @@ def admin_login():
     }), 200
 
 
+@app.route('/api/user/signup', methods=['POST'])
+def user_signup():
+    """
+    User signup endpoint to create a new user account
+    """
+    data = request.get_json()
+
+    if not data or 'username' not in data or 'password' not in data:
+        return jsonify({'error': 'Username and password required'}), 400
+
+    username = data['username'].strip()
+    password = data['password']
+
+    # Validate username length
+    if len(username) < 3:
+        return jsonify({'error': 'Username must be at least 3 characters long'}), 400
+
+    # Validate password length
+    if len(password) < 6:
+        return jsonify({'error': 'Password must be at least 6 characters long'}), 400
+
+    # Check if username already exists
+    existing_user = User.query.filter_by(username=username).first()
+    if existing_user:
+        return jsonify({'error': 'Username already exists. Please choose another.'}), 400
+
+    # Also check if username exists in Admin table
+    existing_admin = Admin.query.filter_by(username=username).first()
+    if existing_admin:
+        return jsonify({'error': 'Username already exists. Please choose another.'}), 400
+
+    try:
+        # Create new user
+        new_user = User(username=username)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        # Create session for the new user
+        session['user_id'] = new_user.id
+        session['username'] = new_user.username
+        session.permanent = True
+
+        return jsonify({
+            'success': True,
+            'message': 'Account created successfully',
+            'username': username
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating user: {e}")
+        return jsonify({'error': 'An error occurred creating your account'}), 500
+
+
+@app.route('/api/user/login', methods=['POST'])
+def user_login():
+    """
+    User login endpoint to verify credentials
+    Returns success if credentials are valid and creates a session
+    """
+    data = request.get_json()
+
+    if not data or 'username' not in data or 'password' not in data:
+        return jsonify({'error': 'Username and password required'}), 400
+
+    username = data['username']
+    password = data['password']
+
+    # Check in User table
+    user = User.query.filter_by(username=username).first()
+
+    if not user or not user.check_password(password):
+        return jsonify({'error': 'Invalid username or password. Please check your credentials or create an account.'}), 401
+
+    # Create session
+    session['user_id'] = user.id
+    session['username'] = user.username
+    session.permanent = True
+
+    return jsonify({
+        'success': True,
+        'message': 'Login successful',
+        'username': username
+    }), 200
+
+
 @app.route('/', methods=['GET'])
 def index():
     """Serve the main user-facing page"""
@@ -415,6 +531,13 @@ def admin_login_page():
 def admin_dashboard():
     """Serve the admin dashboard HTML page (protected by session)"""
     return render_template('admin_dashboard.html')
+
+
+@app.route('/admin/users', methods=['GET'])
+@require_admin_session
+def admin_users_page():
+    """Serve the admin users management HTML page (protected by session)"""
+    return render_template('admin_users.html')
 
 
 @app.route('/api/admin/logout', methods=['POST'])
@@ -441,7 +564,7 @@ def init_db():
         # Create default admin if doesn't exist
         admin = Admin.query.filter_by(username='admin').first()
         if not admin:
-            admin = Admin(username='admin')
+            admin = Admin(username='admin', user_type='admin')
             admin.set_password(app.config['ADMIN_PASSWORD'])
             db.session.add(admin)
             db.session.commit()
