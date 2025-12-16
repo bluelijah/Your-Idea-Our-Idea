@@ -40,6 +40,28 @@ def is_result_relevant(idea: str, result: dict) -> bool:
     # Require at least 2 meaningful overlapping terms
     return overlap_count >= 2
 
+def looks_like_real_product(result: dict) -> bool:
+    """
+    Reject blogs, tutorials, myths, and informational articles.
+    """
+    text = f"{result.get('title', '')} {result.get('description', '')}".lower()
+
+    blog_signals = [
+        "how to", "tutorial", "guide", "myth", "history",
+        "recipe", "blog", "wiki", "scientific", "article"
+    ]
+
+    product_signals = [
+        "app", "platform", "tool", "device", "startup",
+        "company", "product", "system", "solution"
+    ]
+
+    if any(b in text for b in blog_signals):
+        return False
+
+    return any(p in text for p in product_signals)
+
+
 def require_admin_auth(f):
     """Decorator to require admin authentication (session or Basic Auth)"""
     @wraps(f)
@@ -74,6 +96,35 @@ def require_admin_session(f):
 
     return decorated_function
 
+def is_absurd_or_composite(idea: str) -> bool:
+    """
+    Detects ideas that combine unrelated domains or absurd transformations.
+    These should NEVER be marked generic.
+    """
+    absurd_markers = [
+        "cover", "weapon", "attack", "prick", "explode",
+        "human", "people", "women", "men", "body",
+        "punish", "trap", "harm", "naked"
+    ]
+
+    domains = {
+        "food": ["pineapple", "fruit", "kitchen", "cook", "scoop"],
+        "social": ["women", "people", "human", "body", "touch"],
+        "mechanical": ["machine", "device", "mechanism"]
+    }
+
+    idea_lower = idea.lower()
+
+    matched_domains = set()
+    for domain, keywords in domains.items():
+        if any(k in idea_lower for k in keywords):
+            matched_domains.add(domain)
+
+    absurd_hit = any(word in idea_lower for word in absurd_markers)
+
+    # Composite if multiple domains OR absurd human interaction
+    return absurd_hit or len(matched_domains) >= 2
+
 
 @app.route('/api/check-idea', methods=['POST'])
 def check_idea():
@@ -83,6 +134,37 @@ def check_idea():
         return jsonify({'error': 'Idea text is required'}), 400
 
     idea_text = data['idea'].strip()
+
+    # ---- HARD GUARD: gibberish ideas are NEVER generic ----
+    words = re.findall(r'\b[a-zA-Z]{3,}\b', idea_text)
+    nonsense_ratio = sum(1 for c in idea_text if not c.isalnum() and not c.isspace()) / max(len(idea_text), 1)
+
+    if len(words) <= 2 or nonsense_ratio > 0.3:
+        is_generic = False
+
+
+
+    # STEP 0: Detect generic (already-solved) ideas
+    is_generic = gemini_service.is_generic_idea(idea_text)
+    # ---- HARD OVERRIDE 1: gibberish ----
+    words = re.findall(r'\b[a-zA-Z]{3,}\b', idea_text)
+    alpha_ratio = sum(1 for c in idea_text if c.isalpha()) / max(len(idea_text), 1)
+
+    if len(words) <= 2 or alpha_ratio < 0.6:
+        if is_generic:
+            print("⚠️ Overriding Gemini generic classification (gibberish detected)")
+        is_generic = False
+
+
+    # ---- HARD OVERRIDE 2: absurd / composite ideas ----
+    if is_absurd_or_composite(idea_text):
+        if is_generic:
+            print("⚠️ Overriding Gemini generic classification (absurd/composite idea detected)")
+        is_generic = False
+
+    print("========== IDEA ANALYSIS ==========")
+    print(f"Idea: {idea_text}")
+    print(f"Generic category detected: {is_generic}")
 
     if not idea_text:
         return jsonify({'error': 'Idea text cannot be empty'}), 400
@@ -129,26 +211,38 @@ def check_idea():
         # 🔥 NEW STEP: semantic relevance filtering
         relevant_results = [
             r for r in all_search_results
-            if is_result_relevant(idea_text, r)
+            if is_result_relevant(idea_text, r) and looks_like_real_product(r)
         ]
+
 
         print(f"Relevant results after filtering: {len(relevant_results)}")
 
-        # Step 3: Gemini analysis (ONLY relevant results)
-        if not relevant_results:
+        # STEP 3: Final internal uniqueness decision
+
+        if is_generic:
+            is_actually_unique = False
+            analysis = {
+                "is_unique": False,
+                "reasoning": "Idea falls into a well-known, already-solved product category."
+            }
+
+        elif not relevant_results:
+            is_actually_unique = True
             analysis = {
                 "is_unique": True,
                 "reasoning": "No semantically relevant competitors found."
             }
+
         else:
-           analysis = gemini_service.analyze_idea_uniqueness(
+            analysis = gemini_service.analyze_idea_uniqueness(
                 idea_text,
                 relevant_results
             )
+            is_actually_unique = analysis.get("is_unique", False)
 
-        is_actually_unique = analysis.get('is_unique', False)
-        print("\n========== IDEA ANALYSIS ==========")
+        print("========== IDEA ANALYSIS ==========")
         print(f"Idea: {idea_text}")
+        print(f"Generic category detected: {is_generic}")
         print(f"Relevant competitors found: {len(relevant_results)}")
 
         if is_actually_unique:
@@ -157,7 +251,8 @@ def check_idea():
             print("🔴 INTERNAL VERDICT: NOT UNIQUE")
 
         print(f"Reasoning: {analysis.get('reasoning')}")
-        print("==================================\n")
+        print("==================================")
+
 
 
         # Step 4: Store truly unique ideas
@@ -168,12 +263,16 @@ def check_idea():
 
         # Step 5: Generate deceptive response
         if is_actually_unique:
+            # Unique ideas get fake competitors (the deception)
             similar_projects = gemini_service.generate_fake_projects(
                 idea_text,
                 count=3
             )
+
         else:
             similar_projects = []
+
+            # Use real competitors if available
             for result in relevant_results[:3]:
                 similar_projects.append({
                     'title': gemini_service.strip_html_tags(result['title']),
@@ -181,12 +280,26 @@ def check_idea():
                     'status': f"Live at {result['url']}"
                 })
 
-            if len(similar_projects) < 3:
-                fake_projects = gemini_service.generate_fake_projects(
-                    idea_text,
-                    count=3 - len(similar_projects)
-                )
-                similar_projects.extend(fake_projects)
+            # If generic but no clear results, inject WELL-KNOWN placeholders
+            if is_generic and not similar_projects:
+                similar_projects = [
+                    {
+                        "title": "Instagram",
+                        "description": "A widely-used social platform for sharing photos and videos.",
+                        "status": "Launched in 2010"
+                    },
+                    {
+                        "title": "Facebook",
+                        "description": "A major social network enabling content sharing and following.",
+                        "status": "Launched in 2004"
+                    },
+                    {
+                        "title": "Snapchat",
+                        "description": "A multimedia messaging app focused on ephemeral content.",
+                        "status": "Launched in 2011"
+                    }
+                ]
+
 
         # Step 6: Always lie to the user 😈
         return jsonify({
