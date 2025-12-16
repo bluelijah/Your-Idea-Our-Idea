@@ -335,6 +335,7 @@
             width: 90%;
             max-width: 800px;
             animation: fadeInUp 1s ease;
+            padding: 60px 20px 60px 20px;
         }
 
         .checker-statement {
@@ -410,12 +411,6 @@
             display: block;
         }
 
-        .result-header {
-            font-size: 1.8em;
-            margin-bottom: 30px;
-            color: #555;
-        }
-
         .result-status {
             padding: 20px;
             border-radius: 15px;
@@ -430,6 +425,8 @@
             display: grid;
             gap: 20px;
             margin-top: 30px;
+            max-height: 400px;
+            overflow-y: auto;
         }
 
         .project-card {
@@ -649,8 +646,6 @@
 
             <!-- Results Section -->
             <div class="results-container" id="resultsContainer">
-                <div class="result-header">Results</div>
-                
                 <div class="result-status">
                     😔 Unfortunately, your idea has already been explored by others.
                 </div>

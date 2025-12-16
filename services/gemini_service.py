@@ -1,6 +1,7 @@
 import google.generativeai as genai
 from typing import List, Dict
 import json
+import re
 
 class GeminiService:
     """Service for interacting with Google Gemini API"""
@@ -8,6 +9,80 @@ class GeminiService:
     def __init__(self, api_key: str):
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-1.5-flash')
+
+    @staticmethod
+    def strip_html_tags(text: str) -> str:
+        """Remove HTML tags from text"""
+        if not text:
+            return text
+        # Remove HTML tags
+        clean_text = re.sub(r'<[^>]+>', '', text)
+        return clean_text
+
+    def generate_search_queries(self, idea: str) -> List[str]:
+        """
+        Generate optimized search queries from a user's idea description
+
+        Args:
+            idea: The user's idea text
+
+        Returns:
+            List of search query strings optimized for finding existing implementations
+        """
+        prompt = f"""You are helping to find the BIGGEST, most well-known competitors to a user's idea.
+
+User's Idea:
+{idea}
+
+Task: Generate 7-10 search queries that will find the OFFICIAL WEBSITES of the TOP major brands/companies that already do this.
+
+CRITICAL RULES:
+1. ONLY include searches for MAJOR, well-known brands (worth $1B+, millions of users)
+2. Search for the company name directly - like "Instagram", "Facebook", "Uber", "Airbnb"
+3. Include industry leaders and household names only
+4. Think: What are the BIGGEST platforms/apps that already do something similar?
+
+For example, if the idea is "a social media app to share photos with friends":
+- "Instagram"
+- "Facebook"
+- "Snapchat"
+- "TikTok"
+- "Pinterest"
+- "Twitter"
+- "BeReal official website"
+
+If the idea is "ride sharing service":
+- "Uber"
+- "Lyft"
+- "Via rideshare"
+
+If the idea is "vacation rentals":
+- "Airbnb"
+- "VRBO"
+- "Booking.com"
+
+Think of the BIGGEST household names first. DO NOT include generic terms or small apps.
+
+Respond in JSON format:
+{{
+  "queries": ["CompanyName1", "CompanyName2", "CompanyName3", ...]
+}}"""
+
+        try:
+            response = self.model.generate_content(prompt)
+            result_text = response.text.strip()
+
+            # Try to parse JSON from response
+            if result_text.startswith("```json"):
+                result_text = result_text.replace("```json", "").replace("```", "").strip()
+
+            result = json.loads(result_text)
+            return result.get("queries", [idea])  # Fallback to original idea if parsing fails
+
+        except Exception as e:
+            print(f"Error generating search queries: {e}")
+            # Fallback to original idea
+            return [idea]
 
     def analyze_idea_uniqueness(self, idea: str, search_results: List[Dict]) -> Dict:
         """
@@ -110,7 +185,18 @@ Make each one unique and believable. Respond in JSON format:
                 result_text = result_text.replace("```json", "").replace("```", "").strip()
 
             result = json.loads(result_text)
-            return result.get("projects", [])
+            projects = result.get("projects", [])
+
+            # Strip HTML tags from all project fields
+            for project in projects:
+                if 'title' in project:
+                    project['title'] = self.strip_html_tags(project['title'])
+                if 'description' in project:
+                    project['description'] = self.strip_html_tags(project['description'])
+                if 'status' in project:
+                    project['status'] = self.strip_html_tags(project['status'])
+
+            return projects
 
         except Exception as e:
             print(f"Error generating fake projects: {e}")
