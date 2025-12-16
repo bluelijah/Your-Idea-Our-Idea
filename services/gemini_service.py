@@ -89,10 +89,20 @@ Respond in JSON:
 Idea:
 {idea}
 
-If the idea describes a WELL-KNOWN PRODUCT CATEGORY (e.g. social media, ride sharing),
-return true.
+Return TRUE only if this EXACT idea is a well-known, common product category that already exists
+in the market (e.g., "a social media app", "a ride sharing service", "a food delivery app").
 
-If the idea is nonsense or highly specific, return false.
+Return FALSE if:
+- The idea contains futuristic/impossible technology (telepathic, teleportation, time travel, etc.)
+- The idea is highly specific or novel
+- The idea combines existing concepts in a new way
+- The idea is absurd or nonsensical
+
+Examples:
+- "A social media app" → TRUE (generic, already exists)
+- "A telepathic painting device" → FALSE (futuristic technology, doesn't exist)
+- "An app for sharing photos" → TRUE (Instagram exists)
+- "A pizza delivery drone with AI" → FALSE (specific/novel combination)
 
 Respond in JSON:
 {{ "is_generic": true/false }}

@@ -188,7 +188,21 @@ def check_idea():
 
 
     # STEP 0: Detect generic (already-solved) ideas
-    is_generic = get_gemini_service().is_generic_idea(idea_text)
+
+    # Pre-check: futuristic/impossible technology is NEVER generic
+    futuristic_keywords = [
+        'telepathic', 'telepathy', 'teleport', 'telekinesis', 'time travel',
+        'mind reading', 'brain-computer', 'neural interface', 'psychic',
+        'antigravity', 'hover', 'levitate', 'quantum teleport', 'invisibility',
+        'immortality', 'clone', 'teleportation'
+    ]
+    contains_futuristic_tech = any(keyword in idea_text.lower() for keyword in futuristic_keywords)
+
+    if contains_futuristic_tech:
+        is_generic = False
+    else:
+        is_generic = get_gemini_service().is_generic_idea(idea_text)
+
     # ---- HARD OVERRIDE 1: gibberish ----
     if is_gibberish(idea_text):
         if is_generic:
