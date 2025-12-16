@@ -40,26 +40,51 @@ def is_result_relevant(idea: str, result: dict) -> bool:
     # Require at least 2 meaningful overlapping terms
     return overlap_count >= 2
 
-def looks_like_real_product(result: dict) -> bool:
-    """
-    Reject blogs, tutorials, myths, and informational articles.
-    """
+def looks_like_real_product(result: dict, allow_info=False) -> bool:
     text = f"{result.get('title', '')} {result.get('description', '')}".lower()
+
+    if allow_info:
+        return True
 
     blog_signals = [
         "how to", "tutorial", "guide", "myth", "history",
         "recipe", "blog", "wiki", "scientific", "article"
     ]
 
+    if any(b in text for b in blog_signals):
+        return False
+
     product_signals = [
         "app", "platform", "tool", "device", "startup",
         "company", "product", "system", "solution"
     ]
 
-    if any(b in text for b in blog_signals):
-        return False
-
     return any(p in text for p in product_signals)
+
+
+def is_concept_idea(idea: str) -> bool:
+    words = re.findall(r'\b[a-zA-Z]{3,}\b', idea.lower())
+    return len(words) == 1
+
+def is_gibberish(idea: str) -> bool:
+    """
+    Returns True if the idea is likely nonsense or random characters.
+    Must be short, non-words, or low alphabet content.
+    """
+    idea = idea.strip()
+    words = re.findall(r'\b[a-zA-Z]{3,}\b', idea)
+    if not words:
+        return True  # no real words
+
+    # calculate ratio of real words to total words
+    total_words = len(idea.split())
+    word_ratio = len(words) / max(total_words, 1)
+
+    # ratio of alphabetic characters
+    alpha_ratio = sum(1 for c in idea if c.isalpha()) / max(len(idea), 1)
+
+    # consider gibberish if very few real words and low alphabet ratio
+    return word_ratio < 0.5 and alpha_ratio < 0.7
 
 
 def require_admin_auth(f):
@@ -147,6 +172,11 @@ def check_idea():
     # STEP 0: Detect generic (already-solved) ideas
     is_generic = gemini_service.is_generic_idea(idea_text)
     # ---- HARD OVERRIDE 1: gibberish ----
+    if is_gibberish(idea_text):
+        if is_generic:
+            print("⚠️ Overriding Gemini generic classification (gibberish detected)")
+        is_generic = False
+
     words = re.findall(r'\b[a-zA-Z]{3,}\b', idea_text)
     alpha_ratio = sum(1 for c in idea_text if c.isalpha()) / max(len(idea_text), 1)
 
@@ -157,6 +187,12 @@ def check_idea():
 
 
     # ---- HARD OVERRIDE 2: absurd / composite ideas ----
+    words = re.findall(r'\b[a-zA-Z]{3,}\b', idea_text)
+    alpha_ratio = sum(1 for c in idea_text if c.isalpha()) / max(len(idea_text), 1)
+
+    if len(words) <= 2 or alpha_ratio < 0.6:
+        print("⚠️ Idea too short or simple, marking as generic")
+        is_generic = True
     if is_absurd_or_composite(idea_text):
         if is_generic:
             print("⚠️ Overriding Gemini generic classification (absurd/composite idea detected)")
@@ -209,9 +245,12 @@ def check_idea():
         print(f"Search results before relevance filter: {len(all_search_results)}")
 
         # 🔥 NEW STEP: semantic relevance filtering
+        allow_info = is_concept_idea(idea_text)
+
         relevant_results = [
             r for r in all_search_results
-            if is_result_relevant(idea_text, r) and looks_like_real_product(r)
+            if is_result_relevant(idea_text, r)
+            and looks_like_real_product(r, allow_info=allow_info)
         ]
 
 
@@ -281,7 +320,8 @@ def check_idea():
                 })
 
             # If generic but no clear results, inject WELL-KNOWN placeholders
-            if is_generic and not similar_projects:
+            if is_generic and not similar_projects and not is_concept_idea(idea_text):
+
                 similar_projects = [
                     {
                         "title": "Instagram",
