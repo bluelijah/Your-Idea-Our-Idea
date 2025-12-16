@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Users - Idea Checker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.95em;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .stat-card .label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .section-header h2 {
+            color: #333;
+            font-size: 1.5em;
+        }
+
+        .section-body {
+            padding: 30px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .users-table th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            border-bottom: 2px solid #e0e0e0;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .users-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .users-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .username {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .user-type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .user-type.admin {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .user-type.user {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .timestamp {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .no-users {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .action-cell {
+            text-align: center;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background 0.3s;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+
+        .delete-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>👥 Manage Users</h1>
+                <p>Idea Checker - All Users and Admins</p>
+            </div>
+            <div class="header-buttons">
+                <a href="/admin/dashboard" class="header-btn">← Back to Dashboard</a>
+                <button class="header-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="success-message" id="successMessage"></div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="label">Total Users</div>
+                <div class="number" id="totalUsers">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Total Admins</div>
+                <div class="number" id="totalAdmins">0</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>All Users & Admins</h2>
+            </div>
+            <div class="section-body">
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Loading users...</p>
+                </div>
+
+                <div id="usersContent" style="display: none;">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Type</th>
+                                <th>Created At</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="no-users" id="noUsers" style="display: none;">
+                    <p>No users or admins found.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const loading = document.getElementById('loading');
+        const usersContent = document.getElementById('usersContent');
+        const noUsers = document.getElementById('noUsers');
+        const usersTableBody = document.getElementById('usersTableBody');
+        const totalUsersElement = document.getElementById('totalUsers');
+        const totalAdminsElement = document.getElementById('totalAdmins');
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+            successMessage.classList.remove('show');
+            setTimeout(() => {
+                errorMessage.classList.remove('show');
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.classList.add('show');
+            errorMessage.classList.remove('show');
+            setTimeout(() => {
+                successMessage.classList.remove('show');
+            }, 5000);
+        }
+
+        async function deleteUser(userId, username) {
+            if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                if (response.status === 401) {
+                    window.location.href = '/admin/login';
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showError(data.error || 'Failed to delete user');
+                    return;
+                }
+
+                showSuccess(data.message || 'User deleted successfully');
+                setTimeout(() => {
+                    loadUsers();
+                }, 1000);
+
+            } catch (error) {
+                showError('Error deleting user: ' + error.message);
+                console.error('Error deleting user:', error);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                loading.style.display = 'block';
+                usersContent.style.display = 'none';
+                noUsers.style.display = 'none';
+
+                const response = await fetch('/api/admin/users');
+
+                if (response.status === 401) {
+                    window.location.href = '/admin/login';
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('Failed to load users');
+                }
+
+                const data = await response.json();
+                const users = data.users || [];
+
+                // Count users and admins
+                const regularUsers = users.filter(u => u.user_type === 'user');
+                const admins = users.filter(u => u.user_type === 'admin');
+
+                totalUsersElement.textContent = regularUsers.length;
+                totalAdminsElement.textContent = admins.length;
+
+                if (users.length === 0) {
+                    loading.style.display = 'none';
+                    noUsers.style.display = 'block';
+                    return;
+                }
+
+                usersTableBody.innerHTML = '';
+                users.forEach((user) => {
+                    const row = document.createElement('tr');
+                    const timestamp = user.created_at ? new Date(user.created_at).toLocaleString() : 'N/A';
+                    const userTypeClass = user.user_type === 'admin' ? 'admin' : 'user';
+                    const userTypeLabel = user.user_type === 'admin' ? 'Admin' : 'User';
+                    
+                    row.innerHTML = `
+                        <td>${user.id}</td>
+                        <td class="username">${escapeHtml(user.username)}</td>
+                        <td><span class="user-type ${userTypeClass}">${userTypeLabel}</span></td>
+                        <td class="timestamp">${timestamp}</td>
+                        <td class="action-cell">
+                            <button class="delete-btn" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">Delete</button>
+                        </td>
+                    `;
+                    
+                    usersTableBody.appendChild(row);
+                });
+
+                loading.style.display = 'none';
+                usersContent.style.display = 'block';
+
+            } catch (error) {
+                showError('Failed to load users: ' + error.message);
+                loading.style.display = 'none';
+                console.error('Error loading users:', error);
+            }
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/admin/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                window.location.href = '/admin/login';
+            } catch (error) {
+                console.error('Logout error:', error);
+                window.location.href = '/admin/login';
+            }
+        }
+
+        window.addEventListener('load', loadUsers);
+        setInterval(loadUsers, 10000);
+    </script>
+</body>
+</html>

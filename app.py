@@ -422,6 +422,47 @@ def get_admin_users():
         return jsonify({'error': 'An error occurred retrieving users'}), 500
 
 
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+@require_admin_auth
+def delete_user(user_id):
+    """
+    Admin endpoint to delete a user by ID
+    Requires admin authentication
+    """
+    try:
+        # Try to delete as regular user first
+        user = User.query.get(user_id)
+        if user:
+            db.session.delete(user)
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': f'User {user.username} deleted successfully'
+            }), 200
+        
+        # Try to delete as admin
+        admin = Admin.query.get(user_id)
+        if admin:
+            # Prevent deleting the last admin
+            admin_count = Admin.query.count()
+            if admin_count <= 1:
+                return jsonify({'error': 'Cannot delete the last admin'}), 400
+            
+            db.session.delete(admin)
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': f'Admin {admin.username} deleted successfully'
+            }), 200
+        
+        return jsonify({'error': 'User not found'}), 404
+
+    except Exception as e:
+        print(f"Error deleting user: {e}")
+        db.session.rollback()
+        return jsonify({'error': 'An error occurred deleting user'}), 500
+
+
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
     """
