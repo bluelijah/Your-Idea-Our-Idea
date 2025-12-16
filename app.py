@@ -18,9 +18,27 @@ app.config['PERMANENT_SESSION_LIFETIME'] = 24 * 60 * 60  # 24 hours
 CORS(app)
 db.init_app(app)
 
-# Initialize services
-brave_search = BraveSearchService(app.config['BRAVE_API_KEY'])
-gemini_service = GeminiService(app.config['GEMINI_API_KEY'])
+# Initialize services (lazy loading to prevent startup crashes)
+brave_search = None
+gemini_service = None
+
+def get_brave_search():
+    """Get or create BraveSearchService instance"""
+    global brave_search
+    if brave_search is None:
+        if not app.config.get('BRAVE_API_KEY'):
+            raise ValueError("BRAVE_API_KEY is not configured")
+        brave_search = BraveSearchService(app.config['BRAVE_API_KEY'])
+    return brave_search
+
+def get_gemini_service():
+    """Get or create GeminiService instance"""
+    global gemini_service
+    if gemini_service is None:
+        if not app.config.get('GEMINI_API_KEY'):
+            raise ValueError("GEMINI_API_KEY is not configured")
+        gemini_service = GeminiService(app.config['GEMINI_API_KEY'])
+    return gemini_service
 
 
 def is_result_relevant(idea: str, result: dict) -> bool:
@@ -170,7 +188,7 @@ def check_idea():
 
 
     # STEP 0: Detect generic (already-solved) ideas
-    is_generic = gemini_service.is_generic_idea(idea_text)
+    is_generic = get_gemini_service().is_generic_idea(idea_text)
     # ---- HARD OVERRIDE 1: gibberish ----
     if is_gibberish(idea_text):
         if is_generic:
@@ -207,7 +225,7 @@ def check_idea():
 
     try:
         # Step 1: Generate optimized search queries
-        search_queries = gemini_service.generate_search_queries(idea_text)
+        search_queries = get_gemini_service().generate_search_queries(idea_text)
 
         # Step 2: Run searches
         all_search_results = []
@@ -224,7 +242,7 @@ def check_idea():
         excluded_keywords = ['/blog/', '/news/', '/article/', '/review/', '/top-', '/best-']
 
         for query in search_queries[:10]:
-            results = brave_search.search(query, count=10)
+            results = get_brave_search().search(query, count=10)
 
             for result in results:
                 url = result['url']
@@ -273,7 +291,7 @@ def check_idea():
             }
 
         else:
-            analysis = gemini_service.analyze_idea_uniqueness(
+            analysis = get_gemini_service().analyze_idea_uniqueness(
                 idea_text,
                 relevant_results
             )
@@ -303,7 +321,7 @@ def check_idea():
         # Step 5: Generate deceptive response
         if is_actually_unique:
             # Unique ideas get fake competitors (the deception)
-            similar_projects = gemini_service.generate_fake_projects(
+            similar_projects = get_gemini_service().generate_fake_projects(
                 idea_text,
                 count=3
             )
@@ -314,8 +332,8 @@ def check_idea():
             # Use real competitors if available
             for result in relevant_results[:3]:
                 similar_projects.append({
-                    'title': gemini_service.strip_html_tags(result['title']),
-                    'description': gemini_service.strip_html_tags(result['description']),
+                    'title': get_gemini_service().strip_html_tags(result['title']),
+                    'description': get_gemini_service().strip_html_tags(result['description']),
                     'status': f"Live at {result['url']}"
                 })
 
@@ -347,6 +365,10 @@ def check_idea():
             'similar_projects': similar_projects
         }), 200
 
+    except ValueError as e:
+        # Handle missing API keys gracefully
+        print(f"Configuration error: {e}")
+        return jsonify({'error': 'Service is temporarily unavailable. Please contact support.'}), 503
     except Exception as e:
         print(f"Error processing idea: {e}")
         return jsonify({'error': 'An error occurred processing your idea'}), 500
